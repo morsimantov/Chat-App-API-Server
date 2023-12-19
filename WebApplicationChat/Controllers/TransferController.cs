@@ -31,111 +31,88 @@ namespace WebApplicationChat.Controllers
             public string? from { get; set; }  // contact id
             public string? to { get; set; }   // user id
             public string? content { get; set; }
-        }        
+        }
 
         // POST api/<TransferController>
         [HttpPost]
         public async Task<ActionResult> Index([FromBody] bodyTransfer value)
         {
             // user id (to whom the message was sent)
-            string id = value.to;
+            string username = value.to;
             // contact (who sent the message)
-            string contactid = value.from; 
+            string contactid = value.from;
 
             // extracting the user and the contact from the database
-            User user = _context.Users.Where(u => u.id == id).FirstOrDefault();
-            if (user == null)
-            {
-
-                return NotFound();
-            }
-            Contact contact = _context.Contacts.Where(c => c.username == id && c.contactid == contactid).FirstOrDefault();
-            if (contact == null)
+            User user = _context.Users.Where(u => u.id == username).FirstOrDefault();
+            Contact contact = _context.Contacts.Where(c => c.username == username && c.contactid == contactid).FirstOrDefault();
+            if (user == null || contact == null)
             {
                 return NotFound();
             }
 
-      
 
-            // if the contact and user have the same server
-            if (contact.server == user.server)
+            // Fetch the date
+            DateTime msgDate = DateTime.Now;
+            int msgId;
+            int chatId;
+
+            Chat chat = _context.Chat.Where(c => c.userid == username && c.contactid == contactid).FirstOrDefault();
+
+            // If the user doesn't have a chat with the contact - add a new chat with the contact
+            if (chat == null)
             {
-                contact.lastdate = DateTime.Now;
-                contact.last = value.content;
+                // Generate a new chat id
+                chatId = _context.Chat.Any() ? _context.Chat.Max(c => c.id) + 1 : 1;
+                chat = new Chat() { id = chatId, contactid = contact.contactid, userid = username };
+                _context.Chat.Add(chat);
+                await _context.SaveChangesAsync();
             }
 
-            // if the contact and user don't have the same server
+            // If the user has a chat with the ontact
             else
             {
+                chatId = chat.id;
+            }
 
-                int newChatId;
+            // Generate a new message id
+            msgId = _context.Messages.Any() ? _context.Messages.Max(e => e.id) + 1 : 1;
 
-                // if they don't have a chat together
-                if (_context.Chat.Where(c => c.userid == id && c.contactid == contactid).FirstOrDefault() == null)
+            Message newmsg = new Message() { id = msgId, content = value.content, created = msgDate, sent = true, ChatId = chatId };
+
+            // Update contact last message
+            contact.last = newmsg.content;
+            contact.lastdate = newmsg.created;
+            _context.Messages.Add(newmsg);
+
+            await _context.SaveChangesAsync();
+
+            // get connectionId of the username that supposed to get the message
+            string? connectionID = _hubService.GetConnectionId(value.to);
+
+            if (!string.IsNullOrEmpty(connectionID))
+            {
+                // use SignalR to push the message to the user
+                await _hubContext.Clients.Client(connectionID).SendAsync("refresh");
+            }
+
+            // get the token of the user
+            connectionID = _firebaseService.GetToken(value.to);
+
+            //await _hubContext.Clients.Group(id).SendAsync("refresh");
+
+            if (!string.IsNullOrEmpty(connectionID) && contact != null)
+            {
+                try
                 {
-                    if (_context.Chat.Count() == 0)
-                    {
-                        newChatId = 1;
-                    }
-                    else
-                    {
-                        newChatId = _context.Chat.Max(c => c.id) + 1;
-                    }
-                    int updatedChatId = newChatId;
-                    Chat chat = new Chat() { id = updatedChatId, contactid = contactid, userid = id };
-                    _context.Chat.Add(chat);
-                    await _context.SaveChangesAsync();
+                    // send notification to the user through Firebase
+                    _firebaseService.SendNotification(contact, value.content);
                 }
-                else
+                catch (Exception e)
                 {
-                    newChatId = _context.Chat.Where(c => c.userid == id && c.contactid == contactid).FirstOrDefault().id;
-                }
 
-                int followingId;
-
-                if (_context.Messages.Count() != 0)
-                {
-                    followingId = _context.Messages.Max(e => e.id) + 1;
-                }
-                else
-                {
-                    followingId = 1;
-                }
-                DateTime msgDate = DateTime.Now;
-                Message newMessage = new Message() { id = followingId, content = value.content, sent = false, created = msgDate, ChatId = newChatId };
-                contact.last = newMessage.content;
-                contact.lastdate = newMessage.created;
-                _context.Messages.Add(newMessage);
-                await _context.SaveChangesAsync();
-
-                // get connectionId of the username that supposed to get the message
-                string? connectionID = _hubService.GetConnectionId(value.to);
-
-                if (!string.IsNullOrEmpty(connectionID))
-                {
-                    // use SignalR to push the message to the user
-                    await _hubContext.Clients.Client(connectionID).SendAsync("refresh");
-                }
-
-                // get the token of the user
-                connectionID = _firebaseService.GetToken(value.to);
-
-                //await _hubContext.Clients.Group(id).SendAsync("refresh");
-
-                if (!string.IsNullOrEmpty(connectionID) && contact != null)
-                {
-                    try
-                    {
-                        // send notification to the user through Firebase
-                        _firebaseService.SendNotification(contact, value.content);
-                    }
-                    catch (Exception e)
-                    {
-
-                    }
                 }
             }
-         
+
             return StatusCode(201);
         }
     }

@@ -48,11 +48,12 @@ namespace WebApplicationChat.Controllers
             return response;
         }
 
-        // post create a new message between contact and current user --- id is the contact
+
+        // Post a new message between contact and current user (id is the contact)
         [HttpPost("{id}/messages")]
         public async Task<ActionResult<Message>> PostMessage(string id, [FromBody] NewMessageObj newmsgobj)
         {
-            // Fetch current contact by id + username
+            // Fetch current contact by contactid (id) + username
             var currentContact = _context.Contacts.Where(e => e.contactid == id && e.username == newmsgobj.userName).FirstOrDefault();
             if (currentContact == null)
             {
@@ -60,117 +61,59 @@ namespace WebApplicationChat.Controllers
             }
             // Fetch the date
             DateTime msgDate = DateTime.Now;
-            int newChatId1, newChatId2;
-            int followingId;
-            // server same check - if they have the same server
-            if (_context.Users.Where(e => e.id == newmsgobj.userName).FirstOrDefault().server == currentContact.server)
-            {
-                // if the user and contact don't have a chat togther
-                if (_context.Chat.Where(c => c.userid == newmsgobj.userName && c.contactid == id).FirstOrDefault() == null)
-                {
-                    // create new chats objects for the contact and for the user (user-contact, contact-user)
-                    if (_context.Chat.Count() == 0)
-                    {
-                        newChatId1 = 1;
-                    }
-                    else
-                    {
-                        newChatId1 = _context.Chat.Max(c => c.id) + 1;
-                    }
-                    newChatId2 = newChatId1 + 1;
-                    Chat chat1 = new Chat() { id = newChatId1, contactid = currentContact.contactid, userid = newmsgobj.userName };
-                    Chat chat2 = new Chat() { id = newChatId2, contactid = newmsgobj.userName, userid = currentContact.contactid };
-                    _context.Chat.Add(chat1);
-                    _context.Chat.Add(chat2);
-                    await _context.SaveChangesAsync();
-                }
-                // if they do have a chat togther, extract the chats objects
-                else
-                {
-                    newChatId1 = _context.Chat.Where(c => c.userid == newmsgobj.userName && c.contactid == id).FirstOrDefault().id;
-                    newChatId2 = _context.Chat.Where(c => c.userid == id && c.contactid == newmsgobj.userName).FirstOrDefault().id;
+            int msgId;
+            int chatId;
 
-                }
-                
-                if (_context.Messages.Count() != 0)
-                {
-                    followingId = _context.Messages.Max(e => e.id) + 1;
-                }
-                // if there are no messages yet
-                else
-                {
-                    followingId = 1;
-                }
-                Message newmsg1 = new Message() { id = followingId, content = newmsgobj.content, created = msgDate, sent = true, ChatId = newChatId1 };
-                Message newmsg2 = new Message() { id = followingId + 1, content = newmsgobj.content, created = msgDate, sent = false, ChatId = newChatId2 };
-                currentContact.last = newmsg1.content;
-                currentContact.lastdate = newmsg1.created;
-                Contact userNameAsContact = _context.Contacts.Where(c => c.username == currentContact.contactid && c.contactid == newmsgobj.userName).FirstOrDefault();
-                userNameAsContact.last = newmsg2.content;
-                currentContact.lastdate = newmsg2.created;
-                _context.Messages.Add(newmsg1);
-                _context.Messages.Add(newmsg2);
-                ;
+            Chat chat = _context.Chat.Where(c => c.userid == newmsgobj.userName && c.contactid == id).FirstOrDefault();
+
+            // If the user doesn't have a chat with the contact - add a new chat with the contact
+            if (chat == null)
+            {
+                // Generate a new chat id
+                chatId = _context.Chat.Any() ? _context.Chat.Max(c => c.id) + 1 : 1;
+                chat = new Chat() { id = chatId, contactid = currentContact.contactid, userid = newmsgobj.userName };
+                _context.Chat.Add(chat);
+                await _context.SaveChangesAsync();
             }
+
+            // If the user has a chat with the ontact
             else
             {
-                int newChatId;
-                // if the user doesn't have a chat with the contact
-                if (_context.Chat.Where(c => c.userid == newmsgobj.userName && c.contactid == id).FirstOrDefault() == null)
-                {
-                    // add a new chat with the contact
-                    if (_context.Chat.Count() == 0)
-                    {
-                        newChatId = 1;
-                    }
-                    else
-                    {
-                        newChatId = _context.Chat.Max(c => c.id) + 1;
-                    }
-                    int updatedChatId = newChatId;
-                    Chat chat = new Chat() { id = updatedChatId, contactid = currentContact.contactid, userid = newmsgobj.userName };
-                    _context.Chat.Add(chat);
-                    await _context.SaveChangesAsync();
-                }
-                else
-                {
-                    newChatId = _context.Chat.Where(c => c.userid == newmsgobj.userName && c.contactid == id).FirstOrDefault().id;
-                }
-                if (_context.Messages.Count() != 0)
-                {
-                    followingId = _context.Messages.Max(e => e.id) + 1;
-                }
-                else
-                {
-                    followingId = 1;
-                }
-                Message newmsg = new Message() { id = followingId, content = newmsgobj.content, created = msgDate, sent = true, ChatId = newChatId };
-                currentContact.last = newmsg.content;
-                currentContact.lastdate = newmsg.created;
-                _context.Messages.Add(newmsg);
+                chatId = chat.id;
             }
+
+            // Generate a new message id
+            msgId = _context.Messages.Any() ? _context.Messages.Max(e => e.id) + 1 : 1;
+
+            Message newmsg = new Message() { id = msgId, content = newmsgobj.content, created = msgDate, sent = true, ChatId = chatId };
+
+            // Update contact last message
+            currentContact.last = newmsg.content;
+            currentContact.lastdate = newmsg.created;
+            _context.Messages.Add(newmsg);
+
             await _context.SaveChangesAsync();
+
             return StatusCode(201);
-
-
         }
 
-        // get a specific message details --- id is contact and id2 is message Id
-        [HttpGet("{id}/messages/{id2}")]
-        public async Task<ActionResult<Message>> GetMessage(string userName, string id, int id2)
+
+        // Get a specific message details (id is the contact Id and idMessage is message Id)
+        [HttpGet("{id}/messages/{idMessage}")]
+        public async Task<ActionResult<Message>> GetMessage(string userName, string id, int idMessage)
         {
             User currentUser = _context.Users.Where(u => u.id == userName).FirstOrDefault();
             Contact currentContact = _context.Contacts.Where(e => e.contactid == id && e.username == userName).FirstOrDefault();
             Chat wantedChat = _context.Chat.Where(c => c.userid == currentUser.id && c.contactid == id).FirstOrDefault();
-            return _context.Messages.Where(m => m.ChatId == wantedChat.id && m.id == id2).FirstOrDefault();
+            return _context.Messages.Where(m => m.ChatId == wantedChat.id && m.id == idMessage).FirstOrDefault();
         }
 
-        // put update a message --- id is contact and id2 is message Id
 
-        [HttpPut("{id}/Messages/{id2}")]
-        public async Task<IActionResult> PutMessage(string id, int id2, [FromBody] NewMessageObj newmsgobj)
+        // Update a message (id is contact Id and idMessage is message Id)
+        [HttpPut("{id}/Messages/{idMessage}")]
+        public async Task<IActionResult> PutMessage(string id, int idMessage, [FromBody] NewMessageObj newmsgobj)
         {
-            Message message = _context.Messages.Where(m => m.id == id2).FirstOrDefault();
+            Message message = _context.Messages.Where(m => m.id == idMessage).FirstOrDefault();
             Chat currentChat = _context.Chat.Where(c => c.id == message.ChatId).FirstOrDefault();
             Contact currentContact = _context.Contacts.Where(e => e.contactid == id && e.username == newmsgobj.userName).FirstOrDefault();
             if (currentChat.contactid != currentContact.contactid) // todo change if we change primary keys of contact
@@ -190,14 +133,15 @@ namespace WebApplicationChat.Controllers
             }
         }
 
-        // delete a message --- id is contact and id2 is message Id
-        [HttpDelete("{id}/Messages/{id2}")]
-        public async Task<ActionResult> DeleteMessage([FromBody] string userName, string id, int id2)
+
+        // Delete a message (id is contact Id and idMessage is message Id)
+        [HttpDelete("{id}/Messages/{idMessage}")]
+        public async Task<ActionResult> DeleteMessage([FromBody] string userName, string id, int idMessage)
         {
             User currentUser = _context.Users.Where(u => u.id == userName).FirstOrDefault();
             Contact currentContact = _context.Contacts.Where(e => e.contactid == id && e.username == userName).FirstOrDefault();
             Chat wantedChat = _context.Chat.Where(c => c.userid == currentUser.id && c.contactid == id).FirstOrDefault();
-            Message currentMessage = _context.Messages.Where(m => m.ChatId == wantedChat.id && m.id == id2).FirstOrDefault();
+            Message currentMessage = _context.Messages.Where(m => m.ChatId == wantedChat.id && m.id == idMessage).FirstOrDefault();
             if (currentMessage == null)
             {
                 return NotFound();
@@ -206,7 +150,5 @@ namespace WebApplicationChat.Controllers
             await _context.SaveChangesAsync();
             return NoContent();
         }
-
-
     }
 }
