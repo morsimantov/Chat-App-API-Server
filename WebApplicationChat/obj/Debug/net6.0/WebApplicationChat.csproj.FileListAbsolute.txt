@@ -530,3 +530,11 @@ C:\Users\MorSimantov\Desktop\github_projects\Advanced_Programming2_Ex2-main\Adva
 C:\Users\MorSimantov\Desktop\github_projects\Advanced_Programming2_Ex2-main\Advanced_Programming2_Ex2-main\WebApplicationChat\WebApplicationChat\obj\Debug\net6.0\WebApplicationChat.pdb
 C:\Users\MorSimantov\Desktop\github_projects\Advanced_Programming2_Ex2-main\Advanced_Programming2_Ex2-main\WebApplicationChat\WebApplicationChat\obj\Debug\net6.0\WebApplicationChat.genruntimeconfig.cache
 C:\Users\MorSimantov\Desktop\github_projects\Advanced_Programming2_Ex2-main\Advanced_Programming2_Ex2-main\WebApplicationChat\WebApplicationChat\obj\Debug\net6.0\ref\WebApplicationChat.dll
+C:\Users\MorSimantov\Desktop\github_projects\Advanced_Programming2_Ex2-main\Advanced_Programming2_Ex2-main\WebApplicationChat\WebApplicationChat\bin\Debug\net6.0\private_key.json
+C:\Users\MorSimantov\Desktop\github_projects\Advanced_Programming2_Ex2-main\Advanced_Programming2_Ex2-main\WebApplicationChat\WebApplicationChat\bin\Debug\net6.0\FirebaseAdmin.dll
+C:\Users\MorSimantov\Desktop\github_projects\Advanced_Programming2_Ex2-main\Advanced_Programming2_Ex2-main\WebApplicationChat\WebApplicationChat\bin\Debug\net6.0\Google.Api.Gax.dll
+C:\Users\MorSimantov\Desktop\github_projects\Advanced_Programming2_Ex2-main\Advanced_Programming2_Ex2-main\WebApplicationChat\WebApplicationChat\bin\Debug\net6.0\Google.Api.Gax.Rest.dll
+C:\Users\MorSimantov\Desktop\github_projects\Advanced_Programming2_Ex2-main\Advanced_Programming2_Ex2-main\WebApplicationChat\WebApplicationChat\bin\Debug\net6.0\Google.Apis.dll
+C:\Users\MorSimantov\Desktop\github_projects\Advanced_Programming2_Ex2-main\Advanced_Programming2_Ex2-main\WebApplicationChat\WebApplicationChat\bin\Debug\net6.0\Google.Apis.Auth.PlatformServices.dll
+C:\Users\MorSimantov\Desktop\github_projects\Advanced_Programming2_Ex2-main\Advanced_Programming2_Ex2-main\WebApplicationChat\WebApplicationChat\bin\Debug\net6.0\Google.Apis.Auth.dll
+C:\Users\MorSimantov\Desktop\github_projects\Advanced_Programming2_Ex2-main\Advanced_Programming2_Ex2-main\WebApplicationChat\WebApplicationChat\bin\Debug\net6.0\Google.Apis.Core.dll

@@ -1,9 +1,15 @@
 {
   "version": 2,
-  "dgSpecHash": "9DFGedfo9TuxthWj8hFAN/2fd72LV9LXTp5lu7+8+2Hj018LvSt/bp1IMs1pU6sJcW+P+MeIUTQxnwoUCO20YQ==",
+  "dgSpecHash": "N1veR2CRdAsPoPT5zRr5zfOCpkDG51b5BC5ZzvAW2RfB+yL/okYXzZHlsfPKYgDhcD3j87bRdKK+amxvLFVnSQ==",
   "success": true,
   "projectFilePath": "C:\\Users\\MorSimantov\\Desktop\\github_projects\\Advanced_Programming2_Ex2-main\\Advanced_Programming2_Ex2-main\\WebApplicationChat\\WebApplicationChat\\WebApplicationChat.csproj",
   "expectedPackageFiles": [
+    "C:\\Users\\MorSimantov\\.nuget\\packages\\firebaseadmin\\2.4.0\\firebaseadmin.2.4.0.nupkg.sha512",
+    "C:\\Users\\MorSimantov\\.nuget\\packages\\google.api.gax\\3.2.0\\google.api.gax.3.2.0.nupkg.sha512",
+    "C:\\Users\\MorSimantov\\.nuget\\packages\\google.api.gax.rest\\3.2.0\\google.api.gax.rest.3.2.0.nupkg.sha512",
+    "C:\\Users\\MorSimantov\\.nuget\\packages\\google.apis\\1.49.0\\google.apis.1.49.0.nupkg.sha512",
+    "C:\\Users\\MorSimantov\\.nuget\\packages\\google.apis.auth\\1.49.0\\google.apis.auth.1.49.0.nupkg.sha512",
+    "C:\\Users\\MorSimantov\\.nuget\\packages\\google.apis.core\\1.49.0\\google.apis.core.1.49.0.nupkg.sha512",
     "C:\\Users\\MorSimantov\\.nuget\\packages\\humanizer.core\\2.8.26\\humanizer.core.2.8.26.nupkg.sha512",
     "C:\\Users\\MorSimantov\\.nuget\\packages\\messagepack\\2.1.152\\messagepack.2.1.152.nupkg.sha512",
     "C:\\Users\\MorSimantov\\.nuget\\packages\\messagepack.annotations\\2.1.152\\messagepack.annotations.2.1.152.nupkg.sha512",
