@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using WebApplicationChat.Data;
 using Microsoft.AspNetCore.SignalR;
 using WebApplicationChat.Hubs;
+using WebApplicationChat.Services;
 using FirebaseAdmin;
 using FirebaseAdmin.Messaging;
 using Google.Apis.Auth.OAuth2;
@@ -15,11 +16,15 @@ namespace WebApplicationChat.Controllers
     {
         private readonly WebApplicationContext _context;
         private readonly IHubContext<WebApplicationHub> _hubContext;
+        private readonly HubService _hubService;
+        private readonly FirebaseService _firebaseService;
 
-        public TransferController(WebApplicationContext context, IHubContext<WebApplicationHub> HubContext)
+        public TransferController(WebApplicationContext context, IHubContext<WebApplicationHub> HubContext, HubService hubService, FirebaseService firebaseService)
         {
             _context = context;
             _hubContext = HubContext;
+            _hubService = hubService;
+            _firebaseService = firebaseService;
         }
         public class bodyTransfer
         {
@@ -44,14 +49,16 @@ namespace WebApplicationChat.Controllers
 
                 return NotFound();
             }
-            Contact contact = _context.Contacts.Where(c => c.contactid == contactid).FirstOrDefault();
+            Contact contact = _context.Contacts.Where(c => c.username == id && c.contactid == contactid).FirstOrDefault();
             if (contact == null)
             {
                 return NotFound();
             }
 
+      
+
             // if the contact and user have the same server
-            if(contact.server == user.server)
+            if (contact.server == user.server)
             {
                 contact.lastdate = DateTime.Now;
                 contact.last = value.content;
@@ -99,40 +106,36 @@ namespace WebApplicationChat.Controllers
                 contact.last = newMessage.content;
                 contact.lastdate = newMessage.created;
                 _context.Messages.Add(newMessage);
-                
-            }
+                await _context.SaveChangesAsync();
 
+                // get connectionId of the username that supposed to get the message
+                string? connectionID = _hubService.GetConnectionId(value.to);
 
-            if (FirebaseApp.DefaultInstance == null)
-            {
-                FirebaseApp.Create(new AppOptions()
+                if (!string.IsNullOrEmpty(connectionID))
                 {
-                    Credential =
-                        GoogleCredential.FromFile("private_key.json")
-                });
+                    // use SignalR to push the message to the user
+                    await _hubContext.Clients.Client(connectionID).SendAsync("refresh");
+                }
+
+                // get the token of the user
+                connectionID = _firebaseService.GetToken(value.to);
+
+                //await _hubContext.Clients.Group(id).SendAsync("refresh");
+
+                if (!string.IsNullOrEmpty(connectionID) && contact != null)
+                {
+                    try
+                    {
+                        // send notification to the user through Firebase
+                        _firebaseService.SendNotification(contact, value.content);
+                    }
+                    catch (Exception e)
+                    {
+
+                    }
+                }
             }
          
-
-            var message = new FirebaseAdmin.Messaging.Message()
-            {
-                // registration token comes from the client FCM SDKs.
-                Token = "cLvAWrPZQWeLS5YLM3MIM5:APA91bHf8mYRZpIGbTSZJCYJXfgX2Mxl0p1h5_fpNibTsyV2omaV6pCzRUNpnzr0hOIVAY20UXTODcBNFi4CyiglObVpqMohJ6b2m0Ze0JzmiWcTwRJrPzttgx3I8T66tWgyaQ9OoCnd",
-
-                Notification = new Notification()
-                {
-                    Title = "New message from " + contactid,
-                    Body = value.content
-                },
-            };
-
-
-            // Send a message to the device corresponding to the provided registration token.
-            string response = FirebaseMessaging.DefaultInstance.SendAsync(message).Result;
-            // Response is a message ID string.
-            Console.WriteLine("Successfully sent message: " + response);
-        
-            await _context.SaveChangesAsync();
-            await _hubContext.Clients.Group(id).SendAsync("refresh");
             return StatusCode(201);
         }
     }

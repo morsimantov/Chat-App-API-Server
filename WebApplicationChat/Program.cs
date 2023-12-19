@@ -17,6 +17,8 @@ builder.Services.AddControllers();
 //builder.Services.AddTransient<MessageService>();
 builder.Services.AddTransient<ContactService>();
 //builder.Services.AddTransient<UserService>();
+builder.Services.AddTransient<FirebaseService>();
+builder.Services.AddTransient<HubService>();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();

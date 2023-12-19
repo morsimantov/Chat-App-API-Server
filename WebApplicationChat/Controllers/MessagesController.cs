@@ -31,14 +31,13 @@ namespace WebApplicationChat.Controllers
         [HttpGet("{id}/messages")]
         public async Task<ActionResult<IEnumerable<Message>>> getMessages(string userName, string id)
         {
-            //User currentUser = _context.Users.Where(u => u.id == userName).FirstOrDefault();
             Contact currentcontact = _context.Contacts.Where(e => e.contactid == id && e.username == userName).FirstOrDefault();
             if (currentcontact == null)
             {
                 return NotFound();
             }
-            //Chat wantedChat = _context.Chat.Where(c => c.userid == currentUser.id && c.contactid == id || c.userid == id && c.contactid==currentUser.id).FirstOrDefault();
             Chat wantedChat = _context.Chat.Where(c => c.userid == userName && c.contactid == id).FirstOrDefault();
+
             // If there are no messages in the chat yet
             if (wantedChat == null)
             {
