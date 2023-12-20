@@ -18,13 +18,18 @@ namespace WebApplicationChat.Controllers
         private readonly IHubContext<WebApplicationHub> _hubContext;
         private readonly HubService _hubService;
         private readonly FirebaseService _firebaseService;
+        private readonly MessageService _messageService;
+        private readonly ContactService _contactService;
 
-        public TransferController(WebApplicationContext context, IHubContext<WebApplicationHub> HubContext, HubService hubService, FirebaseService firebaseService)
+        public TransferController(WebApplicationContext context, IHubContext<WebApplicationHub> HubContext, HubService hubService, FirebaseService firebaseService, 
+            MessageService messageService, ContactService contactService)
         {
             _context = context;
             _hubContext = HubContext;
             _hubService = hubService;
             _firebaseService = firebaseService;
+            _messageService = messageService;
+            _contactService = contactService;
         }
         public class bodyTransfer
         {
@@ -42,49 +47,19 @@ namespace WebApplicationChat.Controllers
             // contact (who sent the message)
             string contactid = value.from;
 
-            // extracting the user and the contact from the database
-            User user = _context.Users.Where(u => u.id == username).FirstOrDefault();
-            Contact contact = _context.Contacts.Where(c => c.username == username && c.contactid == contactid).FirstOrDefault();
-            if (user == null || contact == null)
+            // extracting the contact from the database
+            Contact contact = await _contactService.GetContact(contactid, username);
+            if (contact == null)
             {
                 return NotFound();
             }
 
+            var message = await _messageService.AddMessage(contactid, username, value.content, false);
 
-            // Fetch the date
-            DateTime msgDate = DateTime.Now;
-            int msgId;
-            int chatId;
-
-            Chat chat = _context.Chat.Where(c => c.userid == username && c.contactid == contactid).FirstOrDefault();
-
-            // If the user doesn't have a chat with the contact - add a new chat with the contact
-            if (chat == null)
+            if (message == null)
             {
-                // Generate a new chat id
-                chatId = _context.Chat.Any() ? _context.Chat.Max(c => c.id) + 1 : 1;
-                chat = new Chat() { id = chatId, contactid = contact.contactid, userid = username };
-                _context.Chat.Add(chat);
-                await _context.SaveChangesAsync();
+                return NotFound();
             }
-
-            // If the user has a chat with the ontact
-            else
-            {
-                chatId = chat.id;
-            }
-
-            // Generate a new message id
-            msgId = _context.Messages.Any() ? _context.Messages.Max(e => e.id) + 1 : 1;
-
-            Message newmsg = new Message() { id = msgId, content = value.content, created = msgDate, sent = true, ChatId = chatId };
-
-            // Update contact last message
-            contact.last = newmsg.content;
-            contact.lastdate = newmsg.created;
-            _context.Messages.Add(newmsg);
-
-            await _context.SaveChangesAsync();
 
             // get connectionId of the username that supposed to get the message
             string? connectionID = _hubService.GetConnectionId(value.to);

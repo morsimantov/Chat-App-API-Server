@@ -1,6 +1,7 @@
 ﻿using WebApplicationChat.Data;
 using Microsoft.EntityFrameworkCore;
 using WebApplicationChat.Models;
+using Google.Apis.Http;
 
 namespace WebApplicationChat.Services
 {
@@ -9,18 +10,20 @@ namespace WebApplicationChat.Services
     {
         private readonly WebApplicationContext _context;
         private readonly ContactService _contactService;
+        private readonly UserService _userService;
 
-        public MessageService(WebApplicationContext context, ContactService contactService)
+        public MessageService(WebApplicationContext context, ContactService contactService, UserService userService)
         {
             _context = context;
             _contactService = contactService;
+            _userService = userService;
 
         }
         public async Task<IEnumerable<Message>> GetMessages(string username, string contactid)
         {
             // Fetch current contact
-            Contact currentcontact = _context.Contacts.Where(e => e.contactid == contactid && e.username == username).FirstOrDefault();
-            if (currentcontact == null)
+            Contact currentContact = await _contactService.GetContact(contactid, username);
+            if (currentContact == null)
             {
                 return null;
             }
@@ -39,7 +42,7 @@ namespace WebApplicationChat.Services
 
         public async Task<Message> GetMessage(string contactid, string username, int messageId)
         {
-            User currentUser = _context.Users.Where(u => u.id == username).FirstOrDefault();
+            User currentUser = await _userService.GetUser(username);
             Contact currentContact = await _contactService.GetContact(contactid, username);
             Chat wantedChat = _context.Chat.Where(c => c.userid == currentUser.id && c.contactid == contactid).FirstOrDefault();
             if (currentUser == null || currentContact == null || wantedChat == null)
@@ -50,11 +53,12 @@ namespace WebApplicationChat.Services
             return msg;
         }
 
-        public async Task<Message> AddMessage(string contactid, string username, string content)
+        public async Task<Message> AddMessage(string contactid, string username, string content, bool sent)
         {
             // Fetch current contact by contactid + username
             Contact currentContact = await _contactService.GetContact(contactid, username);
-            if (currentContact == null)
+            User currentUser = await _userService.GetUser(username);
+            if (currentContact == null || currentUser == null)
             {
                 return null;
             }
@@ -84,7 +88,7 @@ namespace WebApplicationChat.Services
             // Generate a new message id
             msgId = _context.Messages.Any() ? _context.Messages.Max(e => e.id) + 1 : 1;
 
-            Message newMsg = new Message() { id = msgId, content = content, created = msgDate, sent = true, ChatId = chatId };
+            Message newMsg = new Message() { id = msgId, content = content, created = msgDate, sent = sent, ChatId = chatId };
 
             // Update contact last message
             currentContact.last = newMsg.content;
@@ -98,7 +102,7 @@ namespace WebApplicationChat.Services
 
         public async Task<bool> SetMessage(string contactid, int messageId, string username, string content)
         {
-            User currentUser = _context.Users.Where(u => u.id == username).FirstOrDefault();
+            User currentUser = await _userService.GetUser(username);
             Contact currentContact = await _contactService.GetContact(contactid, username);
             Chat wantedChat = _context.Chat.Where(c => c.userid == username && c.contactid == contactid).FirstOrDefault();
             if (currentUser == null || currentContact == null || wantedChat == null)
@@ -117,7 +121,7 @@ namespace WebApplicationChat.Services
         }
         public async Task<bool> DeleteMessage(string contactid, string username, int messageId)
         {
-            User currentUser = _context.Users.Where(u => u.id == username).FirstOrDefault();
+            User currentUser = await _userService.GetUser(username);
             Contact currentContact = await _contactService.GetContact(contactid, username);
             Chat wantedChat = _context.Chat.Where(c => c.userid == username && c.contactid == contactid).FirstOrDefault();
             if (currentUser == null || currentContact == null || wantedChat == null)

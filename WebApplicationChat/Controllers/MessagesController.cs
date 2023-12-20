@@ -61,7 +61,7 @@ namespace WebApplicationChat.Controllers
         [HttpPost("{id}/messages")]
         public async Task<ActionResult<Message>> PostMessage(string id, [FromBody] MessageObj newmsgobj)
         {
-            var message = await _messageService.AddMessage(id, newmsgobj.username, newmsgobj.content);
+            var message = await _messageService.AddMessage(id, newmsgobj.username, newmsgobj.content, true);
             if (message != null)
             {
                 return StatusCode(201);

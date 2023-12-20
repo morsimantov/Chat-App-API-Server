@@ -16,7 +16,7 @@ builder.Services.AddControllers();
 // services
 builder.Services.AddTransient<ContactService>();
 builder.Services.AddTransient<MessageService>();
-//builder.Services.AddTransient<UserService>();
+builder.Services.AddTransient<UserService>();
 builder.Services.AddTransient<FirebaseService>();
 builder.Services.AddTransient<HubService>();
 

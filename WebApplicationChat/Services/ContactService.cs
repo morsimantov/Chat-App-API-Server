@@ -7,10 +7,12 @@ namespace WebApplicationChat.Services
     public class ContactService : IContactService
     {
         private readonly WebApplicationContext _context;
+        private readonly UserService _userService;
 
-        public ContactService(WebApplicationContext context)
+        public ContactService(WebApplicationContext context, UserService userService)
         {
             _context = context;
+            _userService = userService;
         }
 
 
@@ -19,9 +21,9 @@ namespace WebApplicationChat.Services
             return await _context.Contacts.Where(contact => contact.username == username).ToListAsync();
         }
 
-        public async Task<Contact> GetContact(string id, string username)
+        public async Task<Contact> GetContact(string contactid, string username)
         {
-            var contact = await _context.Contacts.FindAsync(id, username);
+            var contact = await _context.Contacts.FindAsync(contactid, username);
             return contact;
         }
 
@@ -31,7 +33,7 @@ namespace WebApplicationChat.Services
             if (contact == null)
             {
                 // make sure the contact is registered as a user
-                var user = await _context.Users.FindAsync(contactid);
+                var user = await _userService.GetUser(contactid);
                 if (user != null)
                 {
                     if (server == user.server)
@@ -47,7 +49,7 @@ namespace WebApplicationChat.Services
 
         public async Task SetContact(string contactid, string username, string name, string server)
         {
-            var contact = await _context.Contacts.FindAsync(contactid, username);
+            var contact = await GetContact(contactid, username);
             if (contact != null)
             {
                 contact.server = server;
@@ -59,7 +61,7 @@ namespace WebApplicationChat.Services
 
         public async Task DeleteContact(string contactid, string username)
         {
-            var contact = await _context.Contacts.FindAsync(contactid, username);
+            var contact = await GetContact(contactid, username);
             if (contact != null)
             {
                 _context.Contacts.Remove(contact);

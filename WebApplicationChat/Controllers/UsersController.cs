@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebApplicationChat;
 using WebApplicationChat.Data;
+using WebApplicationChat.Services;
 
 namespace WebApplicationChat.Controllers
 {
@@ -14,11 +15,11 @@ namespace WebApplicationChat.Controllers
     [ApiController]
     public class UsersController : ControllerBase
     {
-        private readonly WebApplicationContext _context;
+        private readonly UserService _userService;
 
-        public UsersController(WebApplicationContext context)
+        public UsersController(UserService userService)
         {
-            _context = context;
+            _userService = userService;
         }
 
         public class userBody
@@ -31,9 +32,9 @@ namespace WebApplicationChat.Controllers
         }
 
         [HttpGet("getUser")]
-        public async Task<IActionResult> getUser(string userName)
+        public async Task<IActionResult> getUser(string username)
         {
-            var user = await _context.Users.FindAsync(userName);
+            var user = await _userService.GetUser(username);
             if (user == null)
             {
                 return NotFound();
@@ -44,9 +45,9 @@ namespace WebApplicationChat.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Login(string userName, string password)
+        public async Task<IActionResult> Login(string username, string password)
         {
-            var user = await _context.Users.FindAsync(userName);
+            var user = await _userService.GetUser(username);
             if (user == null)
             {
                 return NotFound();
@@ -62,106 +63,12 @@ namespace WebApplicationChat.Controllers
         [HttpPost]
         public async Task<IActionResult> Register([FromBody] userBody user)
         {
-            var userToCreate = await _context.Users.FindAsync(user.id);
-            if (userToCreate == null)
+            var result = await _userService.AddUser(user.id, user.nickname, user.password, user.server);
+            if (!result)
             {
-                userToCreate = new User { id = user.id, nickname = user.nickname, password = user.password, server = user.server };
-                _context.Users.Add(userToCreate);
-                await _context.SaveChangesAsync();
-                return Ok();
+                BadRequest();
             }
-            return BadRequest();
+            return Ok();
         }
-
-        //// GET: api/Users/5
-        //[HttpGet("{id}")]
-        //public async Task<ActionResult<User>> GetUser(string id)
-        //{
-        //    var user = await _context.Users.FindAsync(id);
-
-        //    if (user == null)
-        //    {
-        //        return NotFound();
-        //    }
-
-        //    return user;
-        //}
-
-        //// PUT: api/Users/5
-        //// To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        //[HttpPut("{id}")]
-        //public async Task<IActionResult> PutUser(string id, User user)
-        //{
-        //    if (id != user.id)
-        //    {
-        //        return BadRequest();
-        //    }
-
-        //    _context.Entry(user).State = EntityState.Modified;
-
-        //    try
-        //    {
-        //        await _context.SaveChangesAsync();
-        //    }
-        //    catch (DbUpdateConcurrencyException)
-        //    {
-        //        if (!UserExists(id))
-        //        {
-        //            return NotFound();
-        //        }
-        //        else
-        //        {
-        //            throw;
-        //        }
-        //    }
-
-        //    return NoContent();
-        //}
-
-        //// POST: api/Users
-        //// To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        //[HttpPost]
-        //public async Task<ActionResult<User>> PostUser(User user)
-        //{
-        //    _context.Users.Add(user);
-        //    try
-        //    {
-        //        await _context.SaveChangesAsync();
-        //    }
-        //    catch (DbUpdateException)
-        //    {
-        //        if (UserExists(user.id))
-        //        {
-        //            return Conflict();
-        //        }
-        //        else
-        //        {
-        //            throw;
-        //        }
-        //    }
-
-        //    return CreatedAtAction("GetUser", new { id = user.id }, user);
-        //}
-
-        //// DELETE: api/Users/5
-        //[HttpDelete("{id}")]
-        //public async Task<IActionResult> DeleteUser(string id)
-        //{
-        //    var user = await _context.Users.FindAsync(id);
-        //    if (user == null)
-        //    {
-        //        return NotFound();
-        //    }
-
-        //    _context.Users.Remove(user);
-        //    await _context.SaveChangesAsync();
-
-        //    return NoContent();
-        //}
-
-        //private bool UserExists(string id)
-        //{
-        //    return _context.Users.Any(e => e.id == id);
-        //}
     }
 }
