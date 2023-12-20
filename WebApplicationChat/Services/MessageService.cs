@@ -93,6 +93,7 @@ namespace WebApplicationChat.Services
             // Update contact last message
             currentContact.last = newMsg.content;
             currentContact.lastdate = newMsg.created;
+            _context.Update(currentContact);
             _context.Messages.Add(newMsg);
 
             await _context.SaveChangesAsync();
