@@ -4,6 +4,7 @@ using WebApplicationChat.Data;
 using Microsoft.AspNetCore.SignalR;
 using WebApplicationChat.Hubs;
 using WebApplicationChat.Services;
+using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace WebApplicationChat.Controllers
 {
@@ -14,14 +15,15 @@ namespace WebApplicationChat.Controllers
     {
         private readonly WebApplicationContext _context;
         private readonly IHubContext<WebApplicationHub> _hubContext;
+        private readonly HubService _hubService;
         private readonly ContactService _contactService;
 
-        public InvitationsController(WebApplicationContext context, IHubContext<WebApplicationHub> HubContext, ContactService contactService)
+        public InvitationsController(WebApplicationContext context, IHubContext<WebApplicationHub> HubContext, HubService hubService, ContactService contactService)
         {
             _context = context;
             _hubContext = HubContext;
+            _hubService = hubService;
             _contactService = contactService;
-           
         }
         public class bodyInvitation
         {
@@ -42,7 +44,12 @@ namespace WebApplicationChat.Controllers
                 return NotFound();
             }
             await _contactService.AddContact(value.from, value.to, value.from, value.server);
-            await _hubContext.Clients.Group(id).SendAsync("refresh");
+            string? connectionID = _hubService.GetConnectionId(id);
+            if (connectionID != null)
+            {
+                await _hubContext.Clients.Client(connectionID).SendAsync("refresh");
+            }
+            //await _hubContext.Clients.Group(id).SendAsync("refresh");
             return StatusCode(201);
         }
     }

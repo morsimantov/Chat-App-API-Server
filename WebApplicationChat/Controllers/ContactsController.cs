@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using WebApplicationChat.Data;
+using WebApplicationChat.Hubs;
 using WebApplicationChat.Services;
 
 namespace WebApplicationChat.Controllers
@@ -10,10 +12,14 @@ namespace WebApplicationChat.Controllers
     public class ContactsController : ControllerBase
     {
         private readonly ContactService _contactService;
+        private readonly IHubContext<WebApplicationHub> _hubContext;
+        private readonly HubService _hubService;
 
-        public ContactsController(ContactService contactService)
+        public ContactsController(ContactService contactService, IHubContext<WebApplicationHub> HubContext, HubService hubService)
         {
             _contactService = contactService;
+            _hubContext = HubContext;
+            _hubService = hubService;
         }
         public class newContact
         {
@@ -89,6 +95,12 @@ namespace WebApplicationChat.Controllers
             var contact = await _contactService.AddContact(newContact.id, newContact.username, newContact.name, newContact.server);
             if (contact != null)
             {
+                string? connectionID = _hubService.GetConnectionId(newContact.id);
+
+                if (connectionID != null)
+                {
+                    await _hubContext.Clients.Client(connectionID).SendAsync("refresh");
+                }
                 return StatusCode(201);
             }
             return NotFound();

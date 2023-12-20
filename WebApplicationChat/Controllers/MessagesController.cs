@@ -10,6 +10,8 @@ using WebApplicationChat;
 using WebApplicationChat.Services;
 using static WebApplicationChat.Controllers.ContactsController;
 using Microsoft.OpenApi.Validations;
+using Microsoft.AspNetCore.SignalR;
+using WebApplicationChat.Hubs;
 
 namespace WebApplicationChat.Controllers
 {
@@ -18,10 +20,14 @@ namespace WebApplicationChat.Controllers
     public class MessagesController : ControllerBase
     {
         private readonly MessageService _messageService;
+        private readonly IHubContext<WebApplicationHub> _hubContext;
+        private readonly HubService _hubService;
 
-        public MessagesController(MessageService messageService)
+        public MessagesController(MessageService messageService, IHubContext<WebApplicationHub> hubContext, HubService hubService)
         {
             _messageService = messageService;
+            _hubContext = hubContext;
+            _hubService = hubService;
         }
 
         public class MessageObj
@@ -64,6 +70,12 @@ namespace WebApplicationChat.Controllers
             var message = await _messageService.AddMessage(id, newmsgobj.username, newmsgobj.content, true);
             if (message != null)
             {
+                string? connectionID = _hubService.GetConnectionId(id);
+
+                if (connectionID != null)
+                {
+                    await _hubContext.Clients.Client(connectionID).SendAsync("refresh");
+                }
                 return StatusCode(201);
             }
             return BadRequest();
