@@ -105,7 +105,7 @@ namespace WebApplicationChat.Services
             {
                 return false;
             }
-            Message message = await GetMessage(username, contactid, messageId);
+            Message message = await GetMessage(contactid, username, messageId);
             if (wantedChat.contactid != currentContact.contactid || message == null)
             {
                 return false;
@@ -124,7 +124,7 @@ namespace WebApplicationChat.Services
             {
                 return false;
             }
-            Message message = await GetMessage(username, contactid, messageId);
+            Message message = await GetMessage(contactid, username, messageId);
             if (wantedChat.contactid != currentContact.contactid || message == null)         
             {
                 return false;
