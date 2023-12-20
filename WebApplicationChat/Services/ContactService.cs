@@ -25,18 +25,6 @@ namespace WebApplicationChat.Services
             return contact;
         }
 
-        public async Task SetContact(string contactid, string username, string name, string server)
-        {
-            var contact = await _context.Contacts.FindAsync(contactid, username);
-            if (contact != null)
-            {
-                contact.server = server;
-                contact.name = name;
-                _context.Entry(contact).State = EntityState.Modified;
-                await _context.SaveChangesAsync();
-            }
-        }
-
         public async Task<Contact> AddContact(string contactid, string username, string name, string server)
         {
             var contact = await GetContact(contactid, username);
@@ -57,6 +45,18 @@ namespace WebApplicationChat.Services
             return contact;
         }
 
+        public async Task SetContact(string contactid, string username, string name, string server)
+        {
+            var contact = await _context.Contacts.FindAsync(contactid, username);
+            if (contact != null)
+            {
+                contact.server = server;
+                contact.name = name;
+                _context.Entry(contact).State = EntityState.Modified;
+                await _context.SaveChangesAsync();
+            }
+        }
+
         public async Task DeleteContact(string contactid, string username)
         {
             var contact = await _context.Contacts.FindAsync(contactid, username);
@@ -66,8 +66,5 @@ namespace WebApplicationChat.Services
                 await _context.SaveChangesAsync();
             }
         }
-
-
-
     }
 }

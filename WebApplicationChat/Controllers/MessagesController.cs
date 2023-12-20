@@ -7,6 +7,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebApplicationChat.Data;
 using WebApplicationChat;
+using WebApplicationChat.Services;
+using static WebApplicationChat.Controllers.ContactsController;
+using Microsoft.OpenApi.Validations;
 
 namespace WebApplicationChat.Controllers
 {
@@ -14,140 +17,79 @@ namespace WebApplicationChat.Controllers
     [ApiController]
     public class MessagesController : ControllerBase
     {
-        private readonly WebApplicationContext _context;
+        private readonly MessageService _messageService;
 
-        public MessagesController(WebApplicationContext context)
+        public MessagesController(MessageService messageService)
         {
-            _context = context;
+            _messageService = messageService;
         }
 
-        public class NewMessageObj
+        public class MessageObj
         {
-            public string? userName { get; set; }
+            public string? username { get; set; }
             public string? content { get; set; }
         }
 
 
         [HttpGet("{id}/messages")]
-        public async Task<ActionResult<IEnumerable<Message>>> getMessages(string userName, string id)
+        public async Task<ActionResult<IEnumerable<Message>>> getMessages(string username, string id)
         {
-            Contact currentcontact = _context.Contacts.Where(e => e.contactid == id && e.username == userName).FirstOrDefault();
-            if (currentcontact == null)
+            try
+            {
+                var result = await _messageService.GetMessages(username, id);
+                return Ok(result);
+            }
+            catch
             {
                 return NotFound();
             }
-            Chat wantedChat = _context.Chat.Where(c => c.userid == userName && c.contactid == id).FirstOrDefault();
-
-            // If there are no messages in the chat yet
-            if (wantedChat == null)
-            {
-                return Ok(new List<Message>());
-            }
-            // Fetch the messgages from that chat
-            var response = await _context.Messages.Where(e => e.ChatId == wantedChat.id).ToListAsync();
-            return response;
         }
 
+        // Get a specific message details (id is the contact Id and messageId is message Id)
+        [HttpGet("{id}/messages/{messageId}")]
+        public async Task<ActionResult<Message>> GetMessage(string username, string id, int messageId)
+        {
+            var message = await _messageService.GetMessage(id, username, messageId);
+            if (message != null)
+            {
+                return Ok(message);
+            }
+            return NotFound();
+        }
 
         // Post a new message between contact and current user (id is the contact)
         [HttpPost("{id}/messages")]
-        public async Task<ActionResult<Message>> PostMessage(string id, [FromBody] NewMessageObj newmsgobj)
+        public async Task<ActionResult<Message>> PostMessage(string id, [FromBody] MessageObj newmsgobj)
         {
-            // Fetch current contact by contactid (id) + username
-            var currentContact = _context.Contacts.Where(e => e.contactid == id && e.username == newmsgobj.userName).FirstOrDefault();
-            if (currentContact == null)
-            {
-                return NotFound();
-            }
-            // Fetch the date
-            DateTime msgDate = DateTime.Now;
-            int msgId;
-            int chatId;
-
-            Chat chat = _context.Chat.Where(c => c.userid == newmsgobj.userName && c.contactid == id).FirstOrDefault();
-
-            // If the user doesn't have a chat with the contact - add a new chat with the contact
-            if (chat == null)
-            {
-                // Generate a new chat id
-                chatId = _context.Chat.Any() ? _context.Chat.Max(c => c.id) + 1 : 1;
-                chat = new Chat() { id = chatId, contactid = currentContact.contactid, userid = newmsgobj.userName };
-                _context.Chat.Add(chat);
-                await _context.SaveChangesAsync();
-            }
-
-            // If the user has a chat with the ontact
-            else
-            {
-                chatId = chat.id;
-            }
-
-            // Generate a new message id
-            msgId = _context.Messages.Any() ? _context.Messages.Max(e => e.id) + 1 : 1;
-
-            Message newmsg = new Message() { id = msgId, content = newmsgobj.content, created = msgDate, sent = true, ChatId = chatId };
-
-            // Update contact last message
-            currentContact.last = newmsg.content;
-            currentContact.lastdate = newmsg.created;
-            _context.Messages.Add(newmsg);
-
-            await _context.SaveChangesAsync();
-
-            return StatusCode(201);
-        }
-
-
-        // Get a specific message details (id is the contact Id and idMessage is message Id)
-        [HttpGet("{id}/messages/{idMessage}")]
-        public async Task<ActionResult<Message>> GetMessage(string userName, string id, int idMessage)
-        {
-            User currentUser = _context.Users.Where(u => u.id == userName).FirstOrDefault();
-            Contact currentContact = _context.Contacts.Where(e => e.contactid == id && e.username == userName).FirstOrDefault();
-            Chat wantedChat = _context.Chat.Where(c => c.userid == currentUser.id && c.contactid == id).FirstOrDefault();
-            return _context.Messages.Where(m => m.ChatId == wantedChat.id && m.id == idMessage).FirstOrDefault();
-        }
-
-
-        // Update a message (id is contact Id and idMessage is message Id)
-        [HttpPut("{id}/Messages/{idMessage}")]
-        public async Task<IActionResult> PutMessage(string id, int idMessage, [FromBody] NewMessageObj newmsgobj)
-        {
-            Message message = _context.Messages.Where(m => m.id == idMessage).FirstOrDefault();
-            Chat currentChat = _context.Chat.Where(c => c.id == message.ChatId).FirstOrDefault();
-            Contact currentContact = _context.Contacts.Where(e => e.contactid == id && e.username == newmsgobj.userName).FirstOrDefault();
-            if (currentChat.contactid != currentContact.contactid) // todo change if we change primary keys of contact
-            {
-                return BadRequest();
-            }
+            var message = await _messageService.AddMessage(id, newmsgobj.username, newmsgobj.content);
             if (message != null)
             {
-                message.content = newmsgobj.content;
-                message.created = DateTime.Now;
-                await _context.SaveChangesAsync();
-                return StatusCode(204);
+                return StatusCode(201);
             }
-            else
-            {
-                return NotFound();
-            }
+            return BadRequest();
         }
 
+        // Update a message (id is contact Id and idMessage is message Id)
+        [HttpPut("{id}/Messages/{messageId}")]
+        public async Task<IActionResult> PutMessage(string id, int messageId, [FromBody] MessageObj newmsgobj)
+        {
+            var result = await _messageService.SetMessage(id, messageId, newmsgobj.username, newmsgobj.content);
+            if (!result)
+            {
+               return NotFound();
+            }
+            return StatusCode(204);
+        }
 
         // Delete a message (id is contact Id and idMessage is message Id)
-        [HttpDelete("{id}/Messages/{idMessage}")]
-        public async Task<ActionResult> DeleteMessage([FromBody] string userName, string id, int idMessage)
+        [HttpDelete("{id}/Messages/{messageId}")]
+        public async Task<ActionResult> DeleteMessage([FromBody] string username, string id, int messageId)
         {
-            User currentUser = _context.Users.Where(u => u.id == userName).FirstOrDefault();
-            Contact currentContact = _context.Contacts.Where(e => e.contactid == id && e.username == userName).FirstOrDefault();
-            Chat wantedChat = _context.Chat.Where(c => c.userid == currentUser.id && c.contactid == id).FirstOrDefault();
-            Message currentMessage = _context.Messages.Where(m => m.ChatId == wantedChat.id && m.id == idMessage).FirstOrDefault();
-            if (currentMessage == null)
+            var result = await _messageService.DeleteMessage(id, username, messageId);
+            if (!result)
             {
                 return NotFound();
             }
-            _context.Messages.Remove(currentMessage);
-            await _context.SaveChangesAsync();
             return NoContent();
         }
     }

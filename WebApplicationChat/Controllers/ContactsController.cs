@@ -9,11 +9,11 @@ namespace WebApplicationChat.Controllers
     [ApiController]
     public class ContactsController : ControllerBase
     {
-        private readonly ContactService _service;
+        private readonly ContactService _contactService;
 
-        public ContactsController(ContactService service)
+        public ContactsController(ContactService contactService)
         {
-            _service = service;
+            _contactService = contactService;
         }
         public class newContact
         {
@@ -38,12 +38,12 @@ namespace WebApplicationChat.Controllers
         {
             try
             {
-                var result = await _service.GetContacts(username);
+                var result = await _contactService.GetContacts(username);
                 return Ok(result);
             }
             catch
             {
-                return BadRequest(); //to check what to return
+                return NotFound();
             }
         }
 
@@ -52,7 +52,7 @@ namespace WebApplicationChat.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<Contact>> GetContact(string id, string username)
         {
-            var contact = await _service.GetContact(id, username);
+            var contact = await _contactService.GetContact(id, username);
             if (contact == null)
             {
                 return NotFound();
@@ -71,7 +71,7 @@ namespace WebApplicationChat.Controllers
             {
                 return NotFound();
             }
-            await _service.SetContact(id, editedContact.username, editedContact.name, editedContact.server);
+            await _contactService.SetContact(id, editedContact.username, editedContact.name, editedContact.server);
             return StatusCode(204);
         }
 
@@ -86,7 +86,7 @@ namespace WebApplicationChat.Controllers
             {
                 return BadRequest();
             }
-            var contact = await _service.AddContact(newContact.id, newContact.username, newContact.name, newContact.server);
+            var contact = await _contactService.AddContact(newContact.id, newContact.username, newContact.name, newContact.server);
             if (contact != null)
             {
                 return StatusCode(201);
@@ -104,7 +104,7 @@ namespace WebApplicationChat.Controllers
             {
                 return NotFound();
             }
-            await _service.DeleteContact(id, username);
+            await _contactService.DeleteContact(id, username);
             return StatusCode(204);
         }
     }
